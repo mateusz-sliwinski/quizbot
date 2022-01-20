@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from consts import LEVEL
+from .consts import LEVEL
 
 
 class Question(models.Model):
