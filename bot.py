@@ -3,15 +3,36 @@ import requests
 import json
 import asyncio
 
-
 client = discord.Client()
 
-@client.event
+
+def get_score():
+    leaderboard = ''
+    id = 1
+    response = requests.get("http://127.0.0.1:8000/api/score/leaderboard/")
+    json_data = json.loads(response.text)
+
+    for item in json_data:
+        leaderboard += str(id) + ' ' + item['name'] + ". " + str(item['points']) + "\n"
+        id += 1
+
+    return f'```{leaderboard}```'
+
+
+def update_score(user, points):
+    url = 'http://127.0.0.1:8000/api/score/update/'
+    new_score = {'name': user, 'points': points}
+    x = requests.post(url, data=new_score)
+
+    return
+
+
 def get_question():
     qs = ''
     id = 1
     answer = 0
-    response = requests.get("https://mysterious-fjord-93163.herokuapp.com/api/random/")
+    points = 0
+    response = requests.get("http://127.0.0.1:8000/api/random/")
     json_data = json.loads(response.text)
     qs += "Question: \n"
     qs += json_data[0]['title'] + "\n"
@@ -24,7 +45,9 @@ def get_question():
 
         id += 1
 
-    return (qs, answer)
+    points = json_data[0]['points']
+
+    return (qs, answer, points)
 
 
 @client.event
@@ -32,22 +55,35 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('$question'):
+    if message.content.startswith('$score'):
+        leaderboard = get_score()
+        await message.channel.send(leaderboard)
 
-        qs, answer = get_question()
+    if message.content.startswith('$help'):
+        await message.channel.send("```$score - dla wyświetlenia wyników \n"
+                                   "$question - dla zadania pytania\n"
+                                   "jeżeli jesteś leniem wpisz - $q ```")
+
+    if message.content.startswith('$question') or message.content.startswith('$q'):
+
+        qs, answer, points = get_question()
         await message.channel.send(qs)
 
         def check(m):
-            return m.author == message.author and m.content.isdigit()
+            return m.content.isdigit() == True
 
         try:
-            guess = await client.wait_for('message', check=check, timeout=2.0)
+            guess = await client.wait_for('message', check=check, timeout=10.0)
         except asyncio.TimeoutError:
-            return await message.channel.send('Za długo ByczQ')
+            return await message.channel.send('Sorry, you took too long')
 
         if int(guess.content) == answer:
-            await message.channel.send('Masz racje!')
+            user = guess.author
+            msg = str(guess.author.name) + ' got it right! +' + str(points) + ' points'
+            await message.channel.send(msg)
+            update_score(user, points)
         else:
-            await message.channel.send('Oops. nie tym razem')
+            await message.channel.send('Oops. That is not right')
+
 
 client.run('')

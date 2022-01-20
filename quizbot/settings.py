@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'quiz.apps.QuizConfig',
+    'leaderboard.apps.LeaderboardConfig',
     'rest_framework'
 
 ]
